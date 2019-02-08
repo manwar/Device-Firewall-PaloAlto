@@ -73,11 +73,11 @@ sub authenticate {
 
     my $response = $self->_send_request(
         type => 'keygen',
-        username => $self->{username},
+        user => $self->{username},
         password => $self->{password}
     );
 
-    $self->{api_key} = $response->{key} if $response;
+    $self->{api_key} = $response->{result}{key} if $response;
 
     return $self;
 }
@@ -85,6 +85,8 @@ sub authenticate {
 
 # Sends a request to the firewall. The query string parameters come from the key/value 
 # parameters passed to the function, ie _send_request(type = 'op', cmd => '<xml>')
+#
+# The method automatically adds in the autentication key if it exists.
 sub _send_request {
     my $self = shift;
     my %query = @_;
@@ -104,8 +106,6 @@ sub _send_raw_request {
 
     my $uri = $self->{uri};
     $uri->query_form( \%uri_query );
-
-    say $uri->as_string;
 
     return $self->{user_agent}->get($uri->as_string);
 }
