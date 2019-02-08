@@ -16,6 +16,17 @@ version 0.01
 
 ## new
 
+## authenticate
+
+## op
+
+Returns a Palo Alto operational object. This object has methods to perform operational tasks on the firewall.
+
+    my $fw_op = Device::Firewall::PaloAlto->new(
+                    uri => 'https://firewall.example', 
+                    username => 'admin'
+                )->authenticate->op;
+
 # AUTHOR
 
 Greg Foletta <greg@foletta.org>
