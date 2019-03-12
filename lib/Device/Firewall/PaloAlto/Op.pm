@@ -1,10 +1,14 @@
 package Device::Firewall::PaloAlto::Op;
 
+
 use strict;
 use warnings;
 use 5.010;
 
+use Device::Firewall::PaloAlto::Op::Interfaces;
+
 use XML::LibXML;
+
 
 # VERSION
 # PODNAME
@@ -39,7 +43,7 @@ sub new {
 sub interfaces {
     my $self = shift;
 
-    return $self->_send_op_cmd('show interface', 'all');
+    return Device::Firewall::PaloAlto::Op::Interfaces->_new( $self->_send_op_cmd('show interface', 'all') );
 }
 
 sub routes {
@@ -80,7 +84,6 @@ sub _gen_op_xml {
         $parent->appendChild($child);
     }
 
-    say STDERR $parent->toString;
     return $parent->toString;
 }
 
