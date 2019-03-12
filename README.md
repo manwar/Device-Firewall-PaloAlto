@@ -25,7 +25,7 @@ Returns a Palo Alto operational object. This object has methods to perform opera
     my $fw_op = Device::Firewall::PaloAlto->new(
                     uri => 'https://firewall.example', 
                     username => 'admin'
-                )->authenticate->op;
+                )->auth->op;
 
 # AUTHOR
 

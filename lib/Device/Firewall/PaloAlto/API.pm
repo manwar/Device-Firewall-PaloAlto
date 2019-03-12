@@ -7,8 +7,10 @@ use 5.010;
 use URI;
 use Carp;
 use LWP::UserAgent;
+use HTTP::Request;
 use XML::Twig;
 use Class::Error;
+use Hook::LexWrap;
 
 # VERSION
 # PODNAME
@@ -42,7 +44,8 @@ sub new {
     my @args_keys = qw(uri username password);
 
     @object{ @args_keys } = @args{ @args_keys };
-    $object{password} //= $ENV{PA_FW_PASSWORD} // '';
+    $object{username} //= $ENV{PA_FW_USERNAME} // 'admin';
+    $object{password} //= $ENV{PA_FW_PASSWORD} // 'admin';
 
 
     carp "Not enough keys specified" and return unless keys %object >= 3;
@@ -64,11 +67,11 @@ sub new {
 
 
 
-=head2 authenticate
+=head2 auth
 
 =cut
 
-sub authenticate {
+sub auth {
     my $self = shift;
 
     my $response = $self->_send_request(
@@ -82,6 +85,34 @@ sub authenticate {
     return $self;
 }
 
+=head2 debug
+
+    $fw->debug->authenticate
+
+=cut
+sub debug {
+    my $self = shift;
+
+    return $self if $self->{wrap};
+
+    $self->{wrap} = wrap '_send_raw_request',
+        pre => \&_debug_pre_wrap,
+        post => \&_debug_post_wrap;
+
+    return $self;
+}
+
+=head2 undebug 
+
+=cut
+
+sub undebug {
+    my $self = shift;
+    $self->{wrap} = undef;
+
+    return $self;
+}
+
 
 # Sends a request to the firewall. The query string parameters come from the key/value 
 # parameters passed to the function, ie _send_request(type = 'op', cmd => '<xml>')
@@ -91,23 +122,25 @@ sub _send_request {
     my $self = shift;
     my %query = @_;
 
-    my $response = $self->_send_raw_request(%query);
+    # If we're authenticated, add the API key
+    $query{key} = $self->{api_key} if $self->{api_key};
 
+    # Build the URI query section
+    my $uri = $self->{uri};
+    $uri->query_form( \%query );
+
+    # Create and send the HTTP::Request
+    my $http_request = HTTP::Request->new(GET => $uri->as_string);
+    my $response = $self->_send_raw_request($http_request);
+
+    # Check and return
     return _parse_and_check_response( $response );
 }
 
 
 sub _send_raw_request {
     my $self = shift;
-    my %uri_query = @_;
-
-    # If we're authenticated, add the API key
-    $uri_query{key} = $self->{api_key} if $self->{api_key};
-
-    my $uri = $self->{uri};
-    $uri->query_form( \%uri_query );
-
-    return $self->{user_agent}->get($uri->as_string);
+    return $self->{user_agent}->request($_[0]);
 }
 
 
@@ -146,9 +179,21 @@ sub _check_api_response {
 }
 
 
+use Data::Dumper;
 
+sub _debug_pre_wrap {
+    my $self = shift;
+    my ($http_request) = @_;
+    say "REQUEST:";
+    say $http_request->as_string;
+}
 
-
+sub _debug_post_wrap {
+    my $self = shift;
+    my ($http_response) = @_;
+    say "RESPONSE:";
+    say $http_response->as_string;
+}
 
 
 
