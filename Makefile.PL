@@ -33,7 +33,7 @@ my %WriteMakefileArgs = (
     "warnings" => 0
   },
   "TEST_REQUIRES" => {
-    "Test::More" => "0.88",
+    "Test::More" => 0,
     "Test::UseAllModules" => 0,
     "Test::Warn" => 0
   },
@@ -53,7 +53,7 @@ my %FallbackPrereqs = (
   "Hook::LexWrap" => 0,
   "LWP::UserAgent" => 0,
   "List::Util" => 0,
-  "Test::More" => "0.88",
+  "Test::More" => 0,
   "Test::UseAllModules" => 0,
   "Test::Warn" => 0,
   "URI" => 0,
