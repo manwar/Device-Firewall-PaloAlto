@@ -26,6 +26,7 @@ my %WriteMakefileArgs = (
     "JSON" => 0,
     "LWP::UserAgent" => 0,
     "List::Util" => 0,
+    "Regexp::Common" => 0,
     "URI" => 0,
     "XML::Twig" => 0,
     "parent" => 0,
@@ -37,7 +38,7 @@ my %WriteMakefileArgs = (
     "Test::UseAllModules" => 0,
     "Test::Warn" => 0
   },
-  "VERSION" => "0.01",
+  "VERSION" => "0.1.1",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -54,6 +55,7 @@ my %FallbackPrereqs = (
   "JSON" => 0,
   "LWP::UserAgent" => 0,
   "List::Util" => 0,
+  "Regexp::Common" => 0,
   "Test::More" => 0,
   "Test::UseAllModules" => 0,
   "URI" => 0,
