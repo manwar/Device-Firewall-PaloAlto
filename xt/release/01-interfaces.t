@@ -1,23 +1,27 @@
 use Test::More; 
-use List::MoreUtils qw(pairwise);
 use Device::Firewall::PaloAlto;
 
-my $firewall_ip = $ENV{PA_FW_IP} or BAIL_OUT "'PA_FW_IP' environment variable not set. Set this to the IP/hostname of the firewall to test against.";
+my $fw = Device::Firewall::PaloAlto->new(ssl_opts => { verify_hostname => 0 })->auth;
 
-my $fw = Device::Firewall::PaloAlto->new(uri => "http://$firewall_ip")->auth;
 my @interfaces = $fw->op->interfaces->to_array;
 
 my $interface_regex = qr{^(
     ethernet\d+/\d+(\.\d+)? |
     vlan(\.\d+)? |
     loopback(\.\d+)? |
-    tunnel(\.\d+)?
+    tunnel(\.\d+)? |
+    ae\d+(\.\d+)? |
+    ha(1|2)
 $)}xms;
 
 for my $interface (@interfaces) {
     my $name = $interface->name;
     # Does the interface name make sense
     ok( $name =~ $interface_regex, "($name) name" );
+
+    my $int_obj = $fw->op->interfaces->interface( $name );
+    isa_ok($int_obj, 'Device::Firewall::PaloAlto::Op::Interface', 'Interface Object' );
+    cmp_ok( $int_obj->name, 'eq', $name, 'Interface name vs Index' );
 
     # Is the interface state either down or up
     ok( $interface->state =~ m{^down|up$}xms, "($name) state" );

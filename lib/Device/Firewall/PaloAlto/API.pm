@@ -44,22 +44,24 @@ sub new {
     my @args_keys = qw(uri username password);
 
     @object{ @args_keys } = @args{ @args_keys };
+    $object{uri} //= $ENV{PA_FW_URI} // carp "No uri provided and no environment variable 'PA_FW_URI' found";
     $object{username} //= $ENV{PA_FW_USERNAME} // 'admin';
     $object{password} //= $ENV{PA_FW_PASSWORD} // 'admin';
 
+    my $ssl_opts = $args{ssl_opts} // { };
 
     carp "Not enough keys specified" and return unless keys %object >= 3;
 
     my $uri = URI->new($object{uri});
     if (!($uri->scheme eq 'http' or $uri->scheme eq 'https')) {
-        carp "Incorrect URI scheme: must be either http or https";
+        carp "Incorrect URI scheme in uri '$object{uri}': must be either http or https";
         return
     }
 
     $uri->path('/api/');
 
     $object{uri} = $uri;
-    $object{user_agent} = LWP::UserAgent->new();
+    $object{user_agent} = LWP::UserAgent->new(ssl_opts => $ssl_opts);
     $object{api_key} = '';
 
     return bless \%object, $class;

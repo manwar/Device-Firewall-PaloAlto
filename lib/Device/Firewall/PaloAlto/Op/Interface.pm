@@ -8,6 +8,8 @@ use 5.010;
 # PODNAME
 # ABSTRACT: new module
 
+use parent qw(Device::Firewall::PaloAlto::JSON);
+
 =encoding utf8
 
 =head1 SYNOPSIS
