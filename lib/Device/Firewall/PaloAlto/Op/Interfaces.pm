@@ -6,6 +6,8 @@ use 5.010;
 
 use Device::Firewall::PaloAlto::Op::Interface;
 
+use parent qw(Device::Firewall::PaloAlto::JSON);
+
 use List::Util qw(first);
 use Class::Error;
 
@@ -37,7 +39,9 @@ sub _new {
         @{ $interfaces{$name} }{ keys %{$interface} } = values %{$interface}; 
 
         # No IP address becomes an empty string.
-        $interfaces{$name}{ip} = '' if $interfaces{$name}{ip} eq 'N/A';
+        $interfaces{$name}{ip} = '' if !defined $interfaces{$name}{ip} or $interfaces{$name}{ip} eq 'N/A';
+        # No virtual system becomes vsys ID 0
+        $interfaces{$name}{vsys} //= '0';
     }
 
     # There are some logical interfaces where certain pieces of information is part of the parent.
@@ -48,7 +52,8 @@ sub _new {
             ((ethernet\d+/\d+)\.\d+)|
             ((vlan)\.\d+)|
             ((tunnel)\.\d+)|
-            ((loopback)\.\d+)
+            ((loopback)\.\d+) |
+            ((ae\d+)\.\d+)
         }xms;
 
         next unless defined $child;
@@ -76,7 +81,7 @@ sub interface {
 
     return Class::Error->new("No such interface '$name'") unless defined $self->{$name};
 
-    return Device::Firewall::PaloAlto::Op::Interface->new($self->{$name});
+    return Device::Firewall::PaloAlto::Op::Interface->_new($self->{$name});
 }
 
 
