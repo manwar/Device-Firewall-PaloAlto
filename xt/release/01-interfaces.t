@@ -1,7 +1,8 @@
 use Test::More; 
 use Device::Firewall::PaloAlto;
 
-my $fw = Device::Firewall::PaloAlto->new(ssl_opts => { verify_hostname => 0 })->auth;
+my $fw = Device::Firewall::PaloAlto->new(verify_hostname => 0)->auth;
+ok($fw, "Firewall Object") or BAIL_OUT("Unable to connect to FW object: @{[$fw->error]}");
 
 my @interfaces = $fw->op->interfaces->to_array;
 

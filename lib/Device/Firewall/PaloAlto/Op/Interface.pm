@@ -6,7 +6,7 @@ use 5.010;
 
 # VERSION
 # PODNAME
-# ABSTRACT: new module
+# ABSTRACT: Palo Alto firewall interface
 
 use parent qw(Device::Firewall::PaloAlto::JSON);
 
@@ -37,8 +37,6 @@ Returns the name of the interface.
 =head2 state
 
 State of the interface. Returns the either 'up' or 'down' depending on the interface state.
-
-sub name { return $_[0]->{hw}{name} }
 
 =head2 ip
 

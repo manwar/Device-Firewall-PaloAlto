@@ -6,7 +6,7 @@ use 5.010;
 
 # VERSION
 # PODNAME
-# ABSTRACT: new module
+# ABSTRACT: Palo Alto firewall ARP entry
 
 use parent qw(Device::Firewall::PaloAlto::JSON);
 

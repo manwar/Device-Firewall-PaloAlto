@@ -1,16 +1,19 @@
 package Device::Firewall::PaloAlto::JSON;
 
-use JSON qw();
-use Data::Structure::Util qw(unbless);
-use Carp;
-
 use strict;
 use warnings;
 use 5.010;
 
+# We don't want all of the automatic imports
+use JSON qw();
+
+use Data::Structure::Util qw(unbless);
+use Carp;
+
+
 # VERSION
 # PODNAME
-# ABSTRACT: new module
+# ABSTRACT: JSON parent class for Device::Firewall::PaloAlto modules.
 
 =encoding utf8
 
@@ -20,9 +23,17 @@ use 5.010;
 
 =head1 DESCRIPTION
 
+This module should be used as a parent to allow the module to output a JSON representation of the object.
+
 =cut
 
 =head2 to_json
+
+    # Output the ARP table to STDOUT
+    $fw->op->arp_table->to_json;
+
+    # Output the interfaces to the file 'interfaces.json'
+    $fw->op->interfaces->to_json('interfaces.json');
 
 =cut
 

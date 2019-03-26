@@ -1,8 +1,12 @@
 use Test::More;
 use Device::Firewall::PaloAlto;
 
-my $fw = Device::Firewall::PaloAlto->new(ssl_opts => { verify_hostname => 0 })->auth;
+my $fw = Device::Firewall::PaloAlto->new(verify_hostname => 0)->auth;
+ok($fw, "Firewall Object") or BAIL_OUT("Unable to connect to FW object: @{[$fw->error]}");
+
+
 my $arp_table = $fw->op->arp_table;
+isa_ok($arp_table, 'Device::Firewall::PaloAlto::Op::ARPTable');
 
 ok( $arp_table, "ARP Table" );
 like( $arp_table->current_entries, qr(\d+), "ARP Entries" );
