@@ -10,7 +10,7 @@ use Device::Firewall::PaloAlto::Op;
 
 # VERSION
 # PODNAME
-# ABSTRACT: new module
+# ABSTRACT: Interact with the Palo Alto firwall API
 
 =encoding utf8
 
@@ -26,10 +26,10 @@ use Device::Firewall::PaloAlto::Op;
     );
 
     # Auth is required before performing any actions
-    fw->auth or die "Could not authenticate";
+    $fw->auth or die "Could not authenticate";
 
     # Calls can be chained together
-    my proto = $fw
+    my $proto = $fw
         ->op
         ->virtual_router('default')
         ->route('0.0.0.0/0)
