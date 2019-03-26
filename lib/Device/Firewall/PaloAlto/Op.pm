@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use 5.010;
 
+use Device::Firewall::PaloAlto::Op::SysInfo;
 use Device::Firewall::PaloAlto::Op::Interfaces;
 use Device::Firewall::PaloAlto::Op::ARPTable;
 use Device::Firewall::PaloAlto::Op::VirtualRouter;
@@ -14,19 +15,24 @@ use XML::LibXML;
 
 # VERSION
 # PODNAME
-# ABSTRACT: new module
+# ABSTRACT: Operations module for Palo Alto firewalls
 
 =encoding utf8
 
 =head1 SYNOPSIS
 
+    my $op = Device::Firewall::PaloAlto->new(username => 'admin', password => 'admin')->auth->op;
+    my @interfaces = $op->interface->to_array;
+
 =head1 DESCRIPTION
 
-=head1 ERRORS 
+This module holds methods that perform operation commands on the firewall.
 
 =head1 METHODS
 
 =head2 new
+
+The C<new()> method can be used, but in general it's easier to call the C<op()> method from the L<Device::Firewall::PaloAlto> module.
 
 =cut
 
@@ -35,6 +41,20 @@ sub new {
     my ($fw) = @_;
 
     return bless { fw => $fw }, $class;
+}
+
+=head2 system_info
+
+    my $info = $fw->op->system_info;
+
+Returns a L<Device::Firewall::PaloAlto::Op::SysInfo> object containing system information about the firewall.
+
+=cut
+
+sub system_info {
+    my $self = shift;
+
+    return Device::Firewall::PaloAlto::Op::SysInfo->_new( $self->_send_op_cmd('show system info') );
 }
 
 

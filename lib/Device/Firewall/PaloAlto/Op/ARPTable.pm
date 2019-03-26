@@ -10,7 +10,7 @@ use Device::Firewall::PaloAlto::Op::ARPEntry;
 
 # VERSION
 # PODNAME
-# ABSTRACT: new module
+# ABSTRACT: Palo Alto firewall ARP table
 
 =encoding utf8
 

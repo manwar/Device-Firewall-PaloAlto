@@ -18,6 +18,8 @@ use parent qw(Device::Firewall::PaloAlto::JSON);
 
 =head1 DESCRIPTION
 
+This object represetns a Palo Alto's
+
 =head1 ERRORS 
 
 =head1 METHODS
@@ -30,7 +32,32 @@ sub _new {
     my %virtual_router;
 
     my @routes = @{$api_return->{result}{entry}};
-    %virtual_router = map { $_->{destination} => Device::Firewall::PaloAlto::Op::Route->_new($_) } @routes;
+
+    # We have all of the routes - however due to ECMP we may have two or more routes with the same destination.
+    # We key our routes by destination, so there should be only one 'Route' object.
+    # All the properties of the route are the same except for 'interface', 'nexthop' and 'age'. Thus these
+    # become arrays. 
+
+    for my $route (@routes) {
+        my $dst = $route->{destination};
+
+        $virtual_router{$dst}{num_routes}++;
+
+        # Create the nexthop structure and clean up null values.
+        my %next_hop;
+        foreach (qw(interface nexthop age)) {
+            $next_hop{$_} = ref $route ->{$_} eq 'HASH' ? '' : ${$route}{$_};
+            delete $route->{$_};
+        }
+
+        # Push the structure on to the object.
+        push @{$virtual_router{$dst}{next_hops}}, \%next_hop;
+
+        # Copy the remaining keys across.
+        @{$virtual_router{$dst}}{keys %{$route}} = values %{$route};
+    }
+
+    %virtual_router = map { $_->{destination} => Device::Firewall::PaloAlto::Op::Route->_new($_) } values %virtual_router;
 
     return bless \%virtual_router, $class;
 }
@@ -50,6 +77,14 @@ sub route {
     my ($prefix) = @_;
     return $self->{$prefix};
 }
+
+=head2 to_array
+
+Returns an array of L<Device::Firewall::PaloAlto::Op::Route> objects. 
+
+=cut
+
+sub to_array { return values %{$_[0]} };
 
 
 1;

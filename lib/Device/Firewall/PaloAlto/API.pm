@@ -14,27 +14,15 @@ use Hook::LexWrap;
 
 # VERSION
 # PODNAME
-# ABSTRACT: new module
+# ABSTRACT: Palo Alto firewall API module
 
 =encoding utf8
 
-=head1 SYNOPSIS
-
 =head1 DESCRIPTION
 
-=head1 ERRORS 
+This module contains API related methods used by the L<Device::Firewall::PaloAlto> package.
 
-=head1 METHODS
-
-=head2 new
-
-    my $pa_api = Device::Firewall::PaloAlto::API->new(
-        uri => 'https://localhost',
-        username => 'admin',
-        password => 'admin'
-    )
-
-=cut
+=cut 
 
 sub new {
     my $class = shift;
@@ -44,13 +32,15 @@ sub new {
     my @args_keys = qw(uri username password);
 
     @object{ @args_keys } = @args{ @args_keys };
-    $object{uri} //= $ENV{PA_FW_URI} // carp "No uri provided and no environment variable 'PA_FW_URI' found";
+
+    $object{uri} //= $ENV{PA_FW_URI} or return ERROR('No uri specified and no environment variable PA_FW_URI found');
     $object{username} //= $ENV{PA_FW_USERNAME} // 'admin';
     $object{password} //= $ENV{PA_FW_PASSWORD} // 'admin';
-
-    my $ssl_opts = $args{ssl_opts} // { };
-
     carp "Not enough keys specified" and return unless keys %object >= 3;
+
+    $args{verify_hostname} //= 1;
+    my $ssl_opts = { verify_hostname => $args{verify_hostname} };
+
 
     my $uri = URI->new($object{uri});
     if (!($uri->scheme eq 'http' or $uri->scheme eq 'https')) {
@@ -71,6 +61,9 @@ sub new {
 
 =head2 auth
 
+Authenticates the supplies credentials against the firewall. If successfull it returns the object to allow for method chaining.
+If not successful it returns a L<Class::Error> object.
+
 =cut
 
 sub auth {
@@ -82,14 +75,19 @@ sub auth {
         password => $self->{password}
     );
 
-    $self->{api_key} = $response->{result}{key} if $response;
+    # Return the Class::Error
+    return $response unless $response;
+
+    $self->{api_key} = $response->{result}{key};
 
     return $self;
 }
 
 =head2 debug
 
-    $fw->debug->authenticate
+    $fw->debug->op->interfaces();
+
+Enables the debugging of HTTP requests and responses to the firewall.
 
 =cut
 sub debug {
@@ -105,6 +103,8 @@ sub debug {
 }
 
 =head2 undebug 
+
+Disables debugging.
 
 =cut
 
@@ -148,9 +148,9 @@ sub _send_raw_request {
 
 sub _parse_and_check_response {
     my ($http_response) = @_;
-    return unless $http_response and ref $http_response eq 'HTTP::Response';
-
-    return  _check_api_response( _check_http_response($http_response) );
+    my $r;
+    $r = _check_http_response($http_response) or return $r;
+    return _check_api_response($r);
 }
   
 # Checks whether the HTTP response is an error. Carps and returns undef if it is.
@@ -160,8 +160,8 @@ sub _check_http_response {
     my ($http_response) = @_;
 
     if ($http_response->is_error) {
-        carp('HTTP Error: '.$http_response->status_line.' - '.$http_response->code);
-        return;
+        my $err = "HTTP Error: @{[$http_response->status_line]} - @{[$http_response->code]}";
+        return ERROR($err, 0);
     }
 
     return $http_response->decoded_content;
@@ -172,12 +172,19 @@ sub _check_http_response {
 # On failure returns 'false'.
 sub _check_api_response {
     my ($http_content) = @_;
-    return unless $http_content;
+    return $http_content unless $http_content;
 
     my $api_response = XML::Twig->new->safe_parse( $http_content );
-    carp 'Invalid XML returned in PA respons' and return unless $api_response;
-    
-    return $api_response->simplify( forcearray => ['entry'] );
+    return ERROR('Invalid XML returned in PA response') unless $api_response;
+
+    $api_response = $api_response->simplify( forcearray => ['entry'] );
+
+    if ($api_response->{status} eq 'error') {
+        my $err = "API Error: $api_response->{msg}{line} (Code: $api_response->{code})";
+        return ERROR($err);
+    }
+
+    return $api_response;
 }
 
 
@@ -196,6 +203,22 @@ sub _debug_post_wrap {
     say "RESPONSE:";
     say $http_response->as_string;
 }
+
+
+sub ERROR {
+    my ($errstring, $errno) = @_;
+    
+    # Are we in a one liner? If so, we croak out straight away
+    my ($sub, $file, $inc);
+    while (!defined $sub or $sub ne 'main') { 
+        ($sub, $file) = caller(++$inc);
+    } 
+    
+    croak $errstring if $file eq '-e';
+
+    return Class::Error->new($errstring, $errno);
+}
+
 
 
 
