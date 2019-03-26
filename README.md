@@ -1,6 +1,6 @@
 # NAME
 
-Device::Firewall::PaloAlto - new module
+Device::Firewall::PaloAlto - Interact with the Palo Alto firwall API
 
 # VERSION
 
@@ -18,10 +18,10 @@ version 0.1.1
     );
 
     # Auth is required before performing any actions
-    fw->auth or die "Could not authenticate";
+    $fw->auth or die "Could not authenticate";
 
     # Calls can be chained together
-    my proto = $fw
+    my $proto = $fw
         ->op
         ->virtual_router('default')
         ->route('0.0.0.0/0)
