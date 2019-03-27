@@ -22,6 +22,7 @@ my %WriteMakefileArgs = (
     "Data::Dumper" => 0,
     "HTTP::Request" => 0,
     "Hook::LexWrap" => 0,
+    "JSON" => 0,
     "LWP::UserAgent" => 0,
     "List::Util" => 0,
     "URI" => 0,
@@ -32,7 +33,8 @@ my %WriteMakefileArgs = (
   },
   "TEST_REQUIRES" => {
     "Test::More" => 0,
-    "Test::UseAllModules" => 0
+    "Test::UseAllModules" => 0,
+    "Test::Warn" => 0
   },
   "VERSION" => "0.01",
   "test" => {
@@ -47,6 +49,7 @@ my %FallbackPrereqs = (
   "Data::Dumper" => 0,
   "HTTP::Request" => 0,
   "Hook::LexWrap" => 0,
+  "JSON" => 0,
   "LWP::UserAgent" => 0,
   "List::Util" => 0,
   "Test::More" => 0,
