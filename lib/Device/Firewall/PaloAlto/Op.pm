@@ -72,7 +72,7 @@ sub interfaces {
     return Device::Firewall::PaloAlto::Op::Interfaces->_new( $self->_send_op_cmd('show interface', 'all') );
 }
 
-=head2 
+=head2 arp_table
 
     my $arp = $fw->op->arp_table();
 
