@@ -7,7 +7,7 @@ use 5.010;
 use ExtUtils::MakeMaker;
 
 my %WriteMakefileArgs = (
-  "ABSTRACT" => "new module",
+  "ABSTRACT" => "Interact with the Palo Alto firwall API",
   "AUTHOR" => "Greg Foletta <greg\@foletta.org>",
   "CONFIGURE_REQUIRES" => {
     "ExtUtils::MakeMaker" => 0
@@ -19,9 +19,15 @@ my %WriteMakefileArgs = (
   "PREREQ_PM" => {
     "Carp" => 0,
     "Class::Error" => 0,
+    "Data::Dumper" => 0,
+    "Data::Structure::Util" => 0,
+    "HTTP::Request" => 0,
+    "Hook::LexWrap" => 0,
+    "JSON" => 0,
     "LWP::UserAgent" => 0,
+    "List::Util" => 0,
+    "Regexp::Common" => 0,
     "URI" => 0,
-    "XML::LibXML" => 0,
     "XML::Twig" => 0,
     "parent" => 0,
     "strict" => 0,
@@ -32,7 +38,7 @@ my %WriteMakefileArgs = (
     "Test::UseAllModules" => 0,
     "Test::Warn" => 0
   },
-  "VERSION" => "0.01",
+  "VERSION" => "0.1.2",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -42,12 +48,17 @@ my %WriteMakefileArgs = (
 my %FallbackPrereqs = (
   "Carp" => 0,
   "Class::Error" => 0,
+  "Data::Dumper" => 0,
+  "Data::Structure::Util" => 0,
+  "HTTP::Request" => 0,
+  "Hook::LexWrap" => 0,
+  "JSON" => 0,
   "LWP::UserAgent" => 0,
+  "List::Util" => 0,
+  "Regexp::Common" => 0,
   "Test::More" => 0,
   "Test::UseAllModules" => 0,
-  "Test::Warn" => 0,
   "URI" => 0,
-  "XML::LibXML" => 0,
   "XML::Twig" => 0,
   "parent" => 0,
   "strict" => 0,

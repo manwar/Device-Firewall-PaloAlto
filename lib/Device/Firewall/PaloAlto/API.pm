@@ -7,32 +7,22 @@ use 5.010;
 use URI;
 use Carp;
 use LWP::UserAgent;
+use HTTP::Request;
 use XML::Twig;
 use Class::Error;
+use Hook::LexWrap;
 
 # VERSION
 # PODNAME
-# ABSTRACT: new module
+# ABSTRACT: Palo Alto firewall API module
 
 =encoding utf8
 
-=head1 SYNOPSIS
-
 =head1 DESCRIPTION
 
-=head1 ERRORS 
+This module contains API related methods used by the L<Device::Firewall::PaloAlto> package.
 
-=head1 METHODS
-
-=head2 new
-
-    my $pa_api = Device::Firewall::PaloAlto::API->new(
-        uri => 'https://localhost',
-        username => 'admin',
-        password => 'admin'
-    )
-
-=cut
+=cut 
 
 sub new {
     my $class = shift;
@@ -42,21 +32,26 @@ sub new {
     my @args_keys = qw(uri username password);
 
     @object{ @args_keys } = @args{ @args_keys };
-    $object{password} //= $ENV{PA_FW_PASSWORD} // '';
 
-
+    $object{uri} //= $ENV{PA_FW_URI} or return ERROR('No uri specified and no environment variable PA_FW_URI found');
+    $object{username} //= $ENV{PA_FW_USERNAME} // 'admin';
+    $object{password} //= $ENV{PA_FW_PASSWORD} // 'admin';
     carp "Not enough keys specified" and return unless keys %object >= 3;
+
+    $args{verify_hostname} //= 1;
+    my $ssl_opts = { verify_hostname => $args{verify_hostname} };
+
 
     my $uri = URI->new($object{uri});
     if (!($uri->scheme eq 'http' or $uri->scheme eq 'https')) {
-        carp "Incorrect URI scheme: must be either http or https";
+        carp "Incorrect URI scheme in uri '$object{uri}': must be either http or https";
         return
     }
 
     $uri->path('/api/');
 
     $object{uri} = $uri;
-    $object{user_agent} = LWP::UserAgent->new();
+    $object{user_agent} = LWP::UserAgent->new(ssl_opts => $ssl_opts);
     $object{api_key} = '';
 
     return bless \%object, $class;
@@ -64,20 +59,58 @@ sub new {
 
 
 
-=head2 authenticate
+=head2 auth
+
+Authenticates the supplies credentials against the firewall. If successfull it returns the object to allow for method chaining.
+If not successful it returns a L<Class::Error> object.
 
 =cut
 
-sub authenticate {
+sub auth {
     my $self = shift;
 
     my $response = $self->_send_request(
         type => 'keygen',
-        username => $self->{username},
+        user => $self->{username},
         password => $self->{password}
     );
 
-    $self->{api_key} = $response->{key} if $response;
+    # Return the Class::Error
+    return $response unless $response;
+
+    $self->{api_key} = $response->{result}{key};
+
+    return $self;
+}
+
+=head2 debug
+
+    $fw->debug->op->interfaces();
+
+Enables the debugging of HTTP requests and responses to the firewall.
+
+=cut
+sub debug {
+    my $self = shift;
+
+    return $self if $self->{wrap};
+
+    $self->{wrap} = wrap '_send_raw_request',
+        pre => \&_debug_pre_wrap,
+        post => \&_debug_post_wrap;
+
+    return $self;
+}
+
+=head2 undebug 
+
+Disables debugging.
+
+=cut
+
+sub undebug {
+    my $self = shift;
+    $self->{wrap} = undef;
 
     return $self;
 }
@@ -85,37 +118,39 @@ sub authenticate {
 
 # Sends a request to the firewall. The query string parameters come from the key/value 
 # parameters passed to the function, ie _send_request(type = 'op', cmd => '<xml>')
+#
+# The method automatically adds in the autentication key if it exists.
 sub _send_request {
     my $self = shift;
     my %query = @_;
 
-    my $response = $self->_send_raw_request(%query);
+    # If we're authenticated, add the API key
+    $query{key} = $self->{api_key} if $self->{api_key};
 
+    # Build the URI query section
+    my $uri = $self->{uri};
+    $uri->query_form( \%query );
+
+    # Create and send the HTTP::Request
+    my $http_request = HTTP::Request->new(GET => $uri->as_string);
+    my $response = $self->_send_raw_request($http_request);
+
+    # Check and return
     return _parse_and_check_response( $response );
 }
 
 
 sub _send_raw_request {
     my $self = shift;
-    my %uri_query = @_;
-
-    # If we're authenticated, add the API key
-    $uri_query{key} = $self->{api_key} if $self->{api_key};
-
-    my $uri = $self->{uri};
-    $uri->query_form( \%uri_query );
-
-    say $uri->as_string;
-
-    return $self->{user_agent}->get($uri->as_string);
+    return $self->{user_agent}->request($_[0]);
 }
 
 
 sub _parse_and_check_response {
     my ($http_response) = @_;
-    return unless $http_response and ref $http_response eq 'HTTP::Response';
-
-    return  _check_api_response( _check_http_response($http_response) );
+    my $r;
+    $r = _check_http_response($http_response) or return $r;
+    return _check_api_response($r);
 }
   
 # Checks whether the HTTP response is an error. Carps and returns undef if it is.
@@ -125,8 +160,8 @@ sub _check_http_response {
     my ($http_response) = @_;
 
     if ($http_response->is_error) {
-        carp('HTTP Error: '.$http_response->status_line.' - '.$http_response->code);
-        return;
+        my $err = "HTTP Error: @{[$http_response->status_line]} - @{[$http_response->code]}";
+        return ERROR($err, 0);
     }
 
     return $http_response->decoded_content;
@@ -137,17 +172,52 @@ sub _check_http_response {
 # On failure returns 'false'.
 sub _check_api_response {
     my ($http_content) = @_;
-    return unless $http_content;
+    return $http_content unless $http_content;
 
     my $api_response = XML::Twig->new->safe_parse( $http_content );
-    carp 'Invalid XML returned in PA respons' and return unless $api_response;
-    
-    return $api_response->simplify( forcearray => ['entry'] );
+    return ERROR('Invalid XML returned in PA response') unless $api_response;
+
+    $api_response = $api_response->simplify( forcearray => ['entry'] );
+
+    if ($api_response->{status} eq 'error') {
+        my $err = "API Error: $api_response->{msg}{line} (Code: $api_response->{code})";
+        return ERROR($err);
+    }
+
+    return $api_response;
 }
 
 
+use Data::Dumper;
+
+sub _debug_pre_wrap {
+    my $self = shift;
+    my ($http_request) = @_;
+    say "REQUEST:";
+    say $http_request->as_string;
+}
+
+sub _debug_post_wrap {
+    my $self = shift;
+    my ($http_response) = @_;
+    say "RESPONSE:";
+    say $http_response->as_string;
+}
 
 
+sub ERROR {
+    my ($errstring, $errno) = @_;
+    
+    # Are we in a one liner? If so, we croak out straight away
+    my ($sub, $file, $inc);
+    while (!defined $sub or $sub ne 'main') { 
+        ($sub, $file) = caller(++$inc);
+    } 
+    
+    croak $errstring if $file eq '-e';
+
+    return Class::Error->new($errstring, $errno);
+}
 
 
 
