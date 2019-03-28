@@ -9,6 +9,7 @@ use Device::Firewall::PaloAlto::Op::SysInfo;
 use Device::Firewall::PaloAlto::Op::Interfaces;
 use Device::Firewall::PaloAlto::Op::ARPTable;
 use Device::Firewall::PaloAlto::Op::VirtualRouter;
+use Device::Firewall::PaloAlto::Op::Tunnels;
 
 use XML::LibXML;
 
@@ -108,6 +109,21 @@ sub virtual_router {
     return Device::Firewall::PaloAlto::Op::VirtualRouter->_new( $self->_send_op_cmd('show routing route virtual-router', $table_name) );
 }
 
+=head2 tunnels
+
+Returns a L<Device::Firewall::PaloAlto::Op::Tunnels> object representing the current active IPSEC tunnels.
+
+=cut
+
+sub tunnels {
+    my $self = shift;
+
+    return Device::Firewall::PaloAlto::Op::Tunnels->_new( 
+        $self->_send_op_cmd('show vpn ike-sa'),
+        $self->_send_op_cmd('show vpn ipsec-sa') 
+    );
+}
+
 sub _send_op_cmd {
     my $self = shift;
     my ($cmd, $var) = @_;
@@ -115,6 +131,7 @@ sub _send_op_cmd {
 
     return $self->{fw}->_send_request(type => 'op', cmd => _gen_op_xml($cmd, $var));
 }
+
 
 
 # Generates the proper XML RPC call to go in the operational 'cmd' field.
