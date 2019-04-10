@@ -7,10 +7,12 @@ use 5.010;
 use URI;
 use Carp;
 use LWP::UserAgent;
-use HTTP::Request;
+use HTTP::Request::Common;
 use XML::Twig;
 use Class::Error;
 use Hook::LexWrap;
+
+use Device::Firewall::PaloAlto::Errors qw(ERROR);
 
 # VERSION
 # PODNAME
@@ -53,6 +55,7 @@ sub new {
     $object{uri} = $uri;
     $object{user_agent} = LWP::UserAgent->new(ssl_opts => $ssl_opts);
     $object{api_key} = '';
+    $object{vsys_id} = 1;
 
     return bless \%object, $class;
 }
@@ -127,14 +130,12 @@ sub _send_request {
     # If we're authenticated, add the API key
     $query{key} = $self->{api_key} if $self->{api_key};
 
-    # Build the URI query section
-    my $uri = $self->{uri};
-    $uri->query_form( \%query );
-
-    # Create and send the HTTP::Request
-    my $http_request = HTTP::Request->new(GET => $uri->as_string);
-    my $response = $self->_send_raw_request($http_request);
-
+    # Create the request and pass it to the raw request function.
+    # This function exists to allow us to wrap it in debug functions
+    # and see the raw requests and responses
+    my $request = POST $self->{uri}->as_string, [ %query ];
+    my $response = $self->_send_raw_request($request);
+    
     # Check and return
     return _parse_and_check_response( $response );
 }
@@ -203,22 +204,6 @@ sub _debug_post_wrap {
     say "RESPONSE:";
     say $http_response->as_string;
 }
-
-
-sub ERROR {
-    my ($errstring, $errno) = @_;
-    
-    # Are we in a one liner? If so, we croak out straight away
-    my ($sub, $file, $inc);
-    while (!defined $sub or $sub ne 'main') { 
-        ($sub, $file) = caller(++$inc);
-    } 
-    
-    croak $errstring if $file eq '-e';
-
-    return Class::Error->new($errstring, $errno);
-}
-
 
 
 
