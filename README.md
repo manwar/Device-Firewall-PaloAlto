@@ -81,6 +81,16 @@ Returns a [Device::Firewall::PaloAlto::Op](https://metacpan.org/pod/Device::Fire
 
 ## user\_id
 
+Provides access to the [Device::Firewall::PaloAlto::UserID](https://metacpan.org/pod/Device::Firewall::PaloAlto::UserID) module. This module contains subroutines to add and remove dynamic IP to user mappings:
+
+    # Add a mapping
+    $fw->user_id->add_ip_mapping('192.0.2.1', 'localdomain\greg.foletta');
+
+    # Remove a mapping
+    $fw->user_id->rm_ip_mapping('192.0.2.1', 'localdomain\greg.foletta');
+
+Refer to the module documentation for more information.
+
 ## Errors
 
 Errors are handled differently depending on whether the script is running from a file, or from a 'one-liner'.
