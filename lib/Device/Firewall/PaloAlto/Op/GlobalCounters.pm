@@ -32,7 +32,7 @@ sub _new {
 }
 
 
-=head2 
+=head2 name
 
 Returns a L<Device::Firewall::PaloAlto::Op::GlobalCounter> object based on the counter's name.
 
